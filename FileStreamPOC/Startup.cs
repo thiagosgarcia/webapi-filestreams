@@ -9,10 +9,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FileStreamPOC.Controllers;
+using FileStreamPOC.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.FileProviders;
 
 namespace FileStreamPOC
 {
@@ -36,6 +40,10 @@ namespace FileStreamPOC
             });
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+            var physicalProvider = new PhysicalFileProvider(Path.GetTempPath());
+            services.AddSingleton<IFileProvider>(physicalProvider);
+
             services.AddTransient<IUploadService, UploadService>();
 
         }

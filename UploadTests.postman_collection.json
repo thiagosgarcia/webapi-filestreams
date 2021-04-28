@@ -1,0 +1,441 @@
+{
+	"info": {
+		"_postman_id": "b8f03024-0250-43be-a12f-e56651ee7edb",
+		"name": "UploadTests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "ByteArray20MB",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/octet-stream",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip,deflate",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "Postman-win64-8.3.0-Setup.exe"
+					}
+				},
+				"url": {
+					"raw": "https://localhost:5001/ByteArray",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"ByteArray"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ByteArray15MB",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/octet-stream",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip,deflate",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "wsl_update_x64.msi"
+					}
+				},
+				"url": {
+					"raw": "https://localhost:5001/ByteArray",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"ByteArray"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ByteArray2MB",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/octet-stream",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip,deflate",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "CascadiaCode.zip"
+					}
+				},
+				"url": {
+					"raw": "https://localhost:5001/ByteArray",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"ByteArray"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "FormFile20MB",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "Postman-win64-8.3.0-Setup.exe"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:5001/FormFile",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"FormFile"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "FormFile2MB",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "CascadiaCode.zip"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:5001/FormFile",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"FormFile"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "FormFile15MB",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:5001/FormFile",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"FormFile"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "StreamFile*MB2",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "CorrelationId",
+						"value": "e368eda7-51f9-4e62-be21-932e18f00005",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "",
+							"type": "file",
+							"src": "e368eda7-51f9-4e62-be21-932e18f00002"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "e368eda7-51f9-4e62-be21-932e18f00002"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "e368eda7-51f9-4e62-be21-932e18f00002"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "e368eda7-51f9-4e62-be21-932e18f00002"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "e368eda7-51f9-4e62-be21-932e18f00002"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "e368eda7-51f9-4e62-be21-932e18f00002"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:5001/Streaming",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"Streaming"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Stream2File20MB",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/octet-stream",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip,deflate",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "Postman-win64-8.3.0-Setup.exe"
+					}
+				},
+				"url": {
+					"raw": "https://localhost:5001/ByteArray",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"ByteArray"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "StreamFile*MB3",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "CorrelationId",
+						"value": "e368eda7-51f9-4e62-be21-932e18f00002",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "CascadiaCode.zip"
+						},
+						{
+							"key": "file",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "file",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "file",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "Postman-win64-8.3.0-Setup.exe"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "Postman-win64-8.3.0-Setup.exe"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "wsl_update_x64.msi"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "Postman-win64-8.3.0-Setup.exe"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "Postman-win64-8.3.0-Setup.exe"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "Postman-win64-8.3.0-Setup.exe"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "Postman-win64-8.3.0-Setup.exe"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "Postman-win64-8.3.0-Setup.exe"
+						},
+						{
+							"key": "",
+							"type": "file",
+							"src": "ubuntu-20.04.2.0-desktop-amd64.iso",
+							"disabled": true
+						}
+					]
+				},
+				"url": {
+					"raw": "https://localhost:5001/Streaming",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"Streaming"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
