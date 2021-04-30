@@ -28,9 +28,9 @@ namespace FileStreamClient
             {
                 try
                 {
-                    Task.Run(async () => await new Program().UploadFile(cts.Token), cts.Token).Wait(cts.Token);
-                    Task.Run(async () => await new Program().UploadChunk(cts.Token), cts.Token).Wait(cts.Token);
-                    //Task.Run(async () => await new Program().StreamChunk(cts.Token), cts.Token).Wait(cts.Token);
+                    //    Task.Run(async () => await new Program().UploadFile(cts.Token), cts.Token).Wait(cts.Token);
+                    //    Task.Run(async () => await new Program().UploadChunk(cts.Token), cts.Token).Wait(cts.Token);
+                    Task.Run(async () => await new Program().StreamChunkedFiles(cts.Token), cts.Token).Wait(cts.Token);
 
                     //Task.Run(async () => await new Program().FormFile(cts.Token), cts.Token).Wait(cts.Token);
                     //Task.Run(async () => await new Program().ByteArray(cts.Token), cts.Token).Wait(cts.Token);
@@ -133,24 +133,44 @@ namespace FileStreamClient
             }
         }
 
-        private async Task StreamChunk(CancellationToken cancellationToken)
+        private async Task StreamChunkedFiles(CancellationToken cancellationToken)
         {
-            WriteLine($"------ Uploading in 1 chunk using stream ------");
+            WriteLine($"------ Uploading file in chunks from temp files ------");
             WriteLine("Enter the number of times to loop");
             var repeat = int.Parse(ReadLine() ?? "0");
-            WriteLine($"Preparing stream...");
             for (var i = 0; i < repeat; i++)
             {
+                WriteLine($"Splitting file...");
                 var sw = new Stopwatch();
                 sw.Start();
-                //var content = new MultipartFormDataContent($"---{Guid.NewGuid()}");
                 await using var file = new FileStream(SourceFile, FileMode.Open);
-                var content = new MultipartFormDataContent($"---{Guid.NewGuid()}")
+                var content = new MultipartFormDataContent($"---{Guid.NewGuid()}");
+                var offset = 0;
+                var fileList = new List<string>();
+                while (offset < file.Length)
                 {
-                    new StreamContent(file)
-                };
+                    var fileName = Path.GetTempFileName();
+                    fileList.Add(fileName);
 
+                    var count = ChunkSizeKB * 1024;
+                    var chunk = new byte[count];
+                    var readBytes = await file.ReadAsync(chunk, 0, count, cancellationToken);
+
+                    await using (var tempFile = File.Create(fileName))
+                        await tempFile.WriteAsync(chunk, 0, readBytes, cancellationToken);
+
+                    content.Add(new StreamContent(new FileStream(fileName, FileMode.Open, FileAccess.Read)), Guid.NewGuid().ToString(),
+                        Path.GetFileName(SourceFile) ?? Guid.NewGuid().ToString());
+
+                    offset += count;
+                }
                 await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", repeat);
+                content.Dispose();
+
+                WriteLine($"Cleaning up temp files...");
+                foreach (var fileName in fileList)
+                    File.Delete(fileName);
+
             }
         }
 
@@ -178,15 +198,16 @@ namespace FileStreamClient
         private static async Task CompareChunkSize()
         {
             //await using var file = new FileStream(SourceFile, FileMode.Open);
-            async Task Test(Stopwatch stopwatch, CancellationTokenSource cancellationTokenSource, Dictionary<string, string> dictionary)
+            async Task Test(int chunkSize, CancellationTokenSource cancellationTokenSource, Dictionary<string, string> dictionary)
             {
+                var stopwatch = new Stopwatch();
                 stopwatch.Restart();
                 //await Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
-                WriteLine($"Chunk size: {ChunkSizeKB}");
+                WriteLine($"Chunk size: {chunkSize}");
                 var count = 0;
                 var taskList = new List<Task>();
                 var fileList = new List<string>();
-                fileList.AddRange(Directory.EnumerateFiles(SourceFile).Where(x=> x.EndsWith(".zip")));
+                fileList.AddRange(Directory.EnumerateFiles(SourceFile).Where(x => x.EndsWith(".zip")));
                 WriteLine($"Processing {fileList.Count} files");
 
                 Parallel.ForEach(fileList, (fileName) =>
@@ -196,10 +217,10 @@ namespace FileStreamClient
                         await using var file = new FileStream(fileName, FileMode.Open);
                         await new Program().SendChunksInParts(cancellationTokenSource.Token, file);
                     }, cancellationTokenSource.Token));
-                }); 
+                });
 
                 Task.WaitAll(taskList.ToArray());
-                dictionary.Add($"{ChunkSizeKB} KB", $"{stopwatch.ElapsedMilliseconds}ms");
+                dictionary.Add($"{chunkSize} KB", $"{stopwatch.ElapsedMilliseconds}ms");
             }
 
             var results = new Dictionary<string, string>
@@ -209,26 +230,19 @@ namespace FileStreamClient
             };
             ChunkSizeKB = 4;
             var cts = new CancellationTokenSource();
-            //WriteLine($"(Warm up) chunk size: {ChunkSizeKB}");
-            //await new Program().SendChunksInParts(cts.Token, file);
-            var st = new Stopwatch();
             do
             {
                 ChunkSizeKB *= 2;
                 if (ChunkSizeKB == 64)
+                {
+                    await Test(64, cts, results);
+                    await Test(80, cts, results);
+                    await Test(84, cts, results);
+                    await Test(92, cts, results);
                     continue;
-                await Test(st, cts, results);
+                }
+                await Test(ChunkSizeKB, cts, results);
             } while (ChunkSizeKB < 1024);
-
-
-            ChunkSizeKB = 64;
-            await Test(st, cts, results);
-            ChunkSizeKB = 80;
-            await Test(st, cts, results);
-            ChunkSizeKB = 84;
-            await Test(st, cts, results);
-            ChunkSizeKB = 92;
-            await Test(st, cts, results);
 
             foreach (var (key, val) in results)
                 WriteLine($"{key}\t\t{val}");

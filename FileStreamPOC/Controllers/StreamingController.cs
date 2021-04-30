@@ -137,7 +137,14 @@ namespace FileStreamPOC.Controllers
                             return BadRequest(ModelState);
                         }
 
+                        //Stream do Null device
                         await using var targetStream = Stream.Null;
+
+                        //Stream to temp folder
+                        //var filename = Path.Combine(_targetFilePath, trustedFileNameForFileStorage);
+                        //var fileMode = System.IO.File.Exists(filename) ? FileMode.Append : FileMode.Create;
+
+                        //await using FileStream targetStream = new FileStream(filename, fileMode);
                         await targetStream.WriteAsync(streamedFileContent);
                     }
                 }

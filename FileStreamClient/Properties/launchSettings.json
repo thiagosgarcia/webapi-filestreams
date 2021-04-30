@@ -2,7 +2,7 @@
   "profiles": {
     "FileStreamClient": {
       "commandName": "Project",
-      "commandLineArgs": "-f \"C:\\\\Users\\\\thiag\\\\Postman\\\\files\\\\\" https://localhost:5001/ -cz 64 -cc"
+      "commandLineArgs": "-f \"C:\\Users\\thiag\\Postman\\files\\Postman-win64-8.3.0-Setup - Copy.exe\" https://localhost:5001/ -cz 84"
     }
   }
 }
