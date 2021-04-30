@@ -89,16 +89,16 @@ namespace FileStreamPOC.Controllers
                     // present without form data. If form data
                     // is present, this method immediately fails
                     // and returns the model error.
-                    if (!MultipartRequestHelper
-                        .HasFileContentDisposition(contentDisposition))
-                    {
-                        ModelState.AddModelError("File",
-                            $"The request couldn't be processed (Error 2).");
-                        // Log error
+                    //if (!MultipartRequestHelper
+                    //    .HasFileContentDisposition(contentDisposition))
+                    //{
+                    //    ModelState.AddModelError("File",
+                    //        $"The request couldn't be processed (Error 2).");
+                    //    // Log error
 
-                        return BadRequest(ModelState);
-                    }
-                    else
+                    //    return BadRequest(ModelState);
+                    //}
+                    //else
                     {
                         // Don't trust the file name sent by the client. To display
                         // the file name, HTML-encode the value.
@@ -107,7 +107,7 @@ namespace FileStreamPOC.Controllers
                         //var trustedFileNameForFileStorage = Path.GetRandomFileName();
 
                         //This example uses a CorrelationId header to indicate that multiple requests are dealing with the same file
-                        //This is NOT safe, and should be handled differently in production code
+                        //This is NOT safe, and should be handled differently in production code - if even used
                         var trustedFileNameForFileStorage = stored = new Guid(HttpContext.Request.Headers["CorrelationId"]).ToString();
 
                         // **WARNING!**

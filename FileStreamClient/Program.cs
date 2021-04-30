@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.Serialization;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static System.Console;
@@ -24,6 +27,8 @@ namespace FileStreamClient
             {
                 Task.Run(async () => await new Program().UploadFile(cts.Token), cts.Token).Wait(cts.Token);
                 Task.Run(async () => await new Program().UploadChunk(cts.Token), cts.Token).Wait(cts.Token);
+                //Task.Run(async () => await new Program().StreamChunk(cts.Token), cts.Token).Wait(cts.Token);
+
                 //Task.Run(async () => await new Program().FormFile(cts.Token), cts.Token).Wait(cts.Token);
                 //Task.Run(async () => await new Program().ByteArray(cts.Token), cts.Token).Wait(cts.Token);
             }
@@ -77,7 +82,7 @@ namespace FileStreamClient
                 var content = new MultipartFormDataContent($"---{Guid.NewGuid()}")
                 {
                     {
-                        new StreamContent(file, 64), Guid.NewGuid().ToString(),
+                        new StreamContent(file), Guid.NewGuid().ToString(),
                             Path.GetFileName(SourceFile) ?? Guid.NewGuid().ToString()
                     }
                 };
@@ -87,25 +92,44 @@ namespace FileStreamClient
 
         private async Task UploadChunk(CancellationToken cancellationToken)
         {
-            WriteLine($"------ Uploading in {ChunkSizeKB}KB chunks ------");
-            Write("Enter the number of times to loop");
+            WriteLine($"------ Uploading in {ChunkSizeKB}KB chunks using form ------");
+            WriteLine("Enter the number of times to loop");
             var repeat = int.Parse(ReadLine() ?? "0");
             for (var i = 0; i < repeat; i++)
             {
                 var sw = new Stopwatch();
                 sw.Start();
-                await using var file = new FileStream(SourceFile, FileMode.Open);
                 var content = new MultipartFormDataContent($"---{Guid.NewGuid()}");
+                await using var file = new FileStream(SourceFile, FileMode.Open);
                 var offset = 0;
                 while (offset < file.Length)
                 {
-                    int count = ChunkSizeKB * 1024;
-                    byte[] chunk = new byte[count];
+                    var count = ChunkSizeKB * 1024;
+                    var chunk = new byte[count];
                     var readBytes = await file.ReadAsync(chunk, 0, count, cancellationToken);
-                    //content.Add(new ByteArrayContent(chunk, 0, readBytes));
                     content.Add(new StreamContent(new MemoryStream(chunk, 0, readBytes)), Guid.NewGuid().ToString(), Path.GetFileName(SourceFile) ?? Guid.NewGuid().ToString());
                     offset += count;
                 }
+                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", repeat);
+            }
+        }
+
+        private async Task StreamChunk(CancellationToken cancellationToken)
+        {
+            WriteLine($"------ Uploading in 1 chunk using stream ------");
+            WriteLine("Enter the number of times to loop");
+            var repeat = int.Parse(ReadLine() ?? "0");
+            for (var i = 0; i < repeat; i++)
+            {
+                var sw = new Stopwatch();
+                sw.Start();
+                //var content = new MultipartFormDataContent($"---{Guid.NewGuid()}");
+                await using var file = new FileStream(SourceFile, FileMode.Open);
+                var content = new MultipartFormDataContent($"---{Guid.NewGuid()}")
+                {
+                    new StreamContent(file)
+                };
+
                 await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", repeat);
             }
         }
