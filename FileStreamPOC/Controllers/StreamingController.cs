@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -62,6 +63,10 @@ namespace FileStreamPOC.Controllers
         //[ValidateAntiForgeryToken]
         public async Task<IActionResult> UploadPhysical()
         {
+            Console.WriteLine($"Receiving stream...");
+
+            var sw = new Stopwatch();
+            sw.Start();
             if (!MultipartRequestHelper.IsMultipartContentType(Request.ContentType))
             {
                 ModelState.AddModelError("File",
@@ -77,6 +82,7 @@ namespace FileStreamPOC.Controllers
             var reader = new MultipartReader(boundary, HttpContext.Request.Body);
             var section = await reader.ReadNextSectionAsync();
             var stored = string.Empty;
+            var partCount = 0L;
             while (section != null)
             {
                 var hasContentDispositionHeader =
@@ -123,17 +129,15 @@ namespace FileStreamPOC.Controllers
                             section, contentDisposition, ModelState,
                             _permittedExtensions, _fileSizeLimit);
 
-                        Console.WriteLine($"Streamed part length {streamedFileContent.Length}");
+                        ++partCount;
+                        //Console.WriteLine($"Streamed part length {streamedFileContent.Length} - {partCount}");
 
                         if (!ModelState.IsValid)
                         {
                             return BadRequest(ModelState);
                         }
 
-                        var filename = Path.Combine(_targetFilePath, trustedFileNameForFileStorage);
-                        var fileMode = System.IO.File.Exists(filename) ? FileMode.Append : FileMode.Create;
-
-                        await using FileStream targetStream = new FileStream(filename, fileMode);
+                        await using var targetStream = Stream.Null;
                         await targetStream.WriteAsync(streamedFileContent);
                     }
                 }
@@ -143,7 +147,7 @@ namespace FileStreamPOC.Controllers
                 section = await reader.ReadNextSectionAsync();
             }
 
-            Console.WriteLine($"Created {stored}");
+            Console.WriteLine($"Received - Parts #: {partCount} - Elapsed {sw.ElapsedMilliseconds}ms");
             return Created(nameof(StreamingController), null);
         }
     }

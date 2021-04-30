@@ -25,12 +25,19 @@ namespace FileStreamClient
             ReadParams(args);
             while (true)
             {
-                Task.Run(async () => await new Program().UploadFile(cts.Token), cts.Token).Wait(cts.Token);
-                Task.Run(async () => await new Program().UploadChunk(cts.Token), cts.Token).Wait(cts.Token);
-                //Task.Run(async () => await new Program().StreamChunk(cts.Token), cts.Token).Wait(cts.Token);
+                try
+                {
+                    Task.Run(async () => await new Program().UploadFile(cts.Token), cts.Token).Wait(cts.Token);
+                    Task.Run(async () => await new Program().UploadChunk(cts.Token), cts.Token).Wait(cts.Token);
+                    //Task.Run(async () => await new Program().StreamChunk(cts.Token), cts.Token).Wait(cts.Token);
 
-                //Task.Run(async () => await new Program().FormFile(cts.Token), cts.Token).Wait(cts.Token);
-                //Task.Run(async () => await new Program().ByteArray(cts.Token), cts.Token).Wait(cts.Token);
+                    //Task.Run(async () => await new Program().FormFile(cts.Token), cts.Token).Wait(cts.Token);
+                    //Task.Run(async () => await new Program().ByteArray(cts.Token), cts.Token).Wait(cts.Token);
+                }
+                catch(Exception ex)
+                {
+                    WriteLine(ex.StackTrace);
+                }
             }
         }
 
@@ -39,6 +46,7 @@ namespace FileStreamClient
             WriteLine($"------ Uploading with in-body byte[] ------");
             Write("Enter the number of times to loop");
             var repeat = int.Parse(ReadLine() ?? "0");
+            WriteLine($"Preparing stream...");
             var sw = new Stopwatch();
             sw.Start();
             await using var file = new FileStream(SourceFile, FileMode.Open);
@@ -53,6 +61,7 @@ namespace FileStreamClient
             WriteLine($"------ Uploading with FormFile ------");
             Write("Enter the number of times to loop");
             var repeat = int.Parse(ReadLine() ?? "0");
+            WriteLine($"Preparing stream...");
             for (var i = 0; i < repeat; i++)
             {
                 var sw = new Stopwatch();
@@ -74,6 +83,7 @@ namespace FileStreamClient
             WriteLine($"------ Uploading in one piece ------");
             WriteLine("Enter the number of times to loop");
             var repeat = int.Parse(ReadLine() ?? "0");
+            WriteLine($"Preparing stream...");
             for (var i = 0; i < repeat; i++)
             {
                 var sw = new Stopwatch();
@@ -95,6 +105,7 @@ namespace FileStreamClient
             WriteLine($"------ Uploading in {ChunkSizeKB}KB chunks using form ------");
             WriteLine("Enter the number of times to loop");
             var repeat = int.Parse(ReadLine() ?? "0");
+            WriteLine($"Preparing stream...");
             for (var i = 0; i < repeat; i++)
             {
                 var sw = new Stopwatch();
@@ -119,6 +130,7 @@ namespace FileStreamClient
             WriteLine($"------ Uploading in 1 chunk using stream ------");
             WriteLine("Enter the number of times to loop");
             var repeat = int.Parse(ReadLine() ?? "0");
+            WriteLine($"Preparing stream...");
             for (var i = 0; i < repeat; i++)
             {
                 var sw = new Stopwatch();
