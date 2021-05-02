@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -30,7 +31,8 @@ namespace FileStreamClient
                 {
                     //    Task.Run(async () => await new Program().UploadFile(cts.Token), cts.Token).Wait(cts.Token);
                     //    Task.Run(async () => await new Program().UploadChunk(cts.Token), cts.Token).Wait(cts.Token);
-                    Task.Run(async () => await new Program().StreamChunkedFiles(cts.Token), cts.Token).Wait(cts.Token);
+                    //Task.Run(async () => await new Program().StreamChunkedFiles(cts.Token), cts.Token).Wait(cts.Token);
+                    Task.Run(async () => await new Program().StreamChunkedFilesInMultipleMessages(cts.Token), cts.Token).Wait(cts.Token);
 
                     //Task.Run(async () => await new Program().FormFile(cts.Token), cts.Token).Wait(cts.Token);
                     //Task.Run(async () => await new Program().ByteArray(cts.Token), cts.Token).Wait(cts.Token);
@@ -54,7 +56,7 @@ namespace FileStreamClient
             await using var ms = new MemoryStream();
             await file.CopyToAsync(ms, cancellationToken);
             var content = new ByteArrayContent(ms.ToArray());
-            await SendFile(cancellationToken, content, sw, Endpoint + "ByteArray", repeat);
+            await SendFile(cancellationToken, content, sw, Endpoint + "ByteArray");
         }
 
         private async Task FormFile(CancellationToken cancellationToken)
@@ -75,7 +77,7 @@ namespace FileStreamClient
                             Path.GetFileName(SourceFile) ?? Guid.NewGuid().ToString()
                     }
                 };
-                await SendFile(cancellationToken, content, sw, Endpoint + "FormFile", repeat);
+                await SendFile(cancellationToken, content, sw, Endpoint + "FormFile");
             }
         }
 
@@ -97,7 +99,7 @@ namespace FileStreamClient
                             Path.GetFileName(SourceFile) ?? Guid.NewGuid().ToString()
                     }
                 };
-                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", repeat);
+                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming");
             }
         }
 
@@ -129,7 +131,7 @@ namespace FileStreamClient
                     offset += count;
                 }
 
-                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", repeat);
+                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming");
             }
         }
 
@@ -164,7 +166,7 @@ namespace FileStreamClient
 
                     offset += count;
                 }
-                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", repeat);
+                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming");
                 content.Dispose();
 
                 WriteLine($"Cleaning up temp files...");
@@ -174,8 +176,51 @@ namespace FileStreamClient
             }
         }
 
+        private async Task StreamChunkedFilesInMultipleMessages(CancellationToken cancellationToken)
+        {
+            var fileIdHeader = Guid.NewGuid().ToString();
+            var queue = new Queue<HttpContent>();
+            var sw = new Stopwatch();
+
+            async Task Send()
+            {
+                using var content = new MultipartFormDataContent($"---{Guid.NewGuid()}");
+
+                while (queue.TryDequeue(out var streamContent))
+                    content.Add(streamContent, Guid.NewGuid().ToString(),
+                        Path.GetFileName(SourceFile) ?? Guid.NewGuid().ToString());
+
+                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", fileIdHeader);
+            }
+
+            WriteLine($"------ Uploading file in chunks with multiple messages and on demand ------");
+            WriteLine("Enter the number of times to loop");
+            var repeat = int.Parse(ReadLine() ?? "0");
+            for (var i = 0; i < repeat; i++)
+            {
+                WriteLine($"Splitting file...");
+                sw.Start();
+                await using var file = new FileStream(SourceFile, FileMode.Open);
+                var offset = 0;
+                while (offset < file.Length)
+                {
+                    var count = ChunkSizeKB * 1024;
+                    var chunk = new byte[count];
+                    var readBytes = await file.ReadAsync(chunk, 0, count, cancellationToken);
+                    queue.Enqueue(new StreamContent(new MemoryStream(chunk, 0, readBytes)));
+
+                    offset += count;
+
+                    //if (queue.Count == 100) // this should be a meaningful count, based on desired total message size
+                    if (queue.Count > ((20 *1024 *1024 ) / count)) //20MB messages in this case
+                        await Send();
+                }
+                await Send();
+            }
+        }
+
         private async Task SendFile(CancellationToken cancellationToken, HttpContent content, Stopwatch sw,
-            string endpoint, int repeat)
+            string endpoint, string correlationId = null)
         {
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, endpoint)
             {
@@ -185,7 +230,9 @@ namespace FileStreamClient
             requestMessage.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
             requestMessage.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("deflate"));
 
-            requestMessage.Headers.TryAddWithoutValidation("CorrelationId", Guid.NewGuid().ToString());
+            if (correlationId == null)
+                correlationId = Guid.NewGuid().ToString();
+            requestMessage.Headers.TryAddWithoutValidation("CorrelationId", correlationId);
             var client = new HttpClient();
 
             WriteLine($"Prepare request took {sw.ElapsedMilliseconds}ms");
@@ -246,6 +293,10 @@ namespace FileStreamClient
 
             foreach (var (key, val) in results)
                 WriteLine($"{key}\t\t{val}");
+        }
+
+        private static async Task MutipleMessage()
+        {
         }
 
         private static void ReadParams(string[] args)

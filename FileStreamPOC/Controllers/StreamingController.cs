@@ -83,6 +83,7 @@ namespace FileStreamPOC.Controllers
             var section = await reader.ReadNextSectionAsync();
             var stored = string.Empty;
             var partCount = 0L;
+            var size = 0L;
             while (section != null)
             {
                 var hasContentDispositionHeader =
@@ -130,6 +131,7 @@ namespace FileStreamPOC.Controllers
                             _permittedExtensions, _fileSizeLimit);
 
                         ++partCount;
+                        size += streamedFileContent.Length;
                         //Console.WriteLine($"Streamed part length {streamedFileContent.Length} - {partCount}");
 
                         if (!ModelState.IsValid)
@@ -154,7 +156,7 @@ namespace FileStreamPOC.Controllers
                 section = await reader.ReadNextSectionAsync();
             }
 
-            Console.WriteLine($"Received - Parts #: {partCount} - Elapsed {sw.ElapsedMilliseconds}ms");
+            Console.WriteLine($"Received - Parts #: {partCount} / {size/1024}KB - Elapsed {sw.ElapsedMilliseconds}ms");
             return Created(nameof(StreamingController), null);
         }
     }
