@@ -230,20 +230,20 @@ namespace FileStreamClient
                 sw.Start();
                 await using var file = new FileStream(SourceFile, FileMode.Open);
 
-                var count = ChunkSizeKB * 1024;
-                var chunk = new byte[count];
+                var messageSize = DesiredMessageSizeKB * 1024; //defaults to 20MB
+                var chunkSize = Math.Min(ChunkSizeKB * 1024, messageSize); //Max chunk size == desired message size
+                var chunkBytes = new byte[chunkSize];
                 int readBytes;
-                while (0 < (readBytes = await file.ReadAsync(chunk, 0, count, cancellationToken)))
+                while (0 < (readBytes = await file.ReadAsync(chunkBytes, 0, chunkSize, cancellationToken)))
                 {
-                    queue.Enqueue(new StreamContent(new MemoryStream(chunk, 0, readBytes)));
-                    //if (queue.Count == 100) // this should be a meaningful count, based on desired total message size
-                    if (queue.Count >= ((DesiredMessageSizeKB * 1024) / count)) //defaults to 20MB messages
+                    queue.Enqueue(new StreamContent(new MemoryStream(chunkBytes, 0, readBytes)));
+                    if (queue.Count >= (messageSize / chunkSize)) //# of chunks in a message
                         await Send();
 
                     //Despite [readBytes] is telling me how many bytes were written, [file.ReadAsync] is not overwriting a defined buffer. Recreating the buffer...
-                    chunk = new byte[count];
+                    chunkBytes = new byte[chunkSize];
                 }
-                await Send();
+                await Send(); //If there's anything left to be sent
             }
         }
 
