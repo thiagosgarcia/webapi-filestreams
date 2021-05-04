@@ -83,9 +83,10 @@ namespace FileStreamPOC.Controllers
                 _defaultFormOptions.MultipartBoundaryLengthLimit);
             var reader = new MultipartReader(boundary, HttpContext.Request.Body);
             var section = await reader.ReadNextSectionAsync();
-            var stored = string.Empty;
             var partCount = 0L;
             var size = 0L;
+            var stored = string.Empty;
+
             while (section != null)
             {
                 var hasContentDispositionHeader =
@@ -116,9 +117,11 @@ namespace FileStreamPOC.Controllers
                         //var trustedFileNameForFileStorage = Path.GetRandomFileName();
 
                         if (HttpContext.Request.Headers.ContainsKey("CorrelationId"))
+                        {
                             //This example uses a CorrelationId header to indicate that multiple requests are dealing with the same file
                             //This is NOT safe, and should be handled differently in production code - if even used
-                             stored = new Guid(HttpContext.Request.Headers["CorrelationId"]).ToString();
+                            stored = new Guid(HttpContext.Request.Headers["CorrelationId"]).ToString();
+                        }
                         else if(HttpContext.Request.Headers.ContainsKey("Upload-Metadata"))
                         {
                             stored = HttpContext.Request.Headers["Upload-Metadata"];
@@ -168,7 +171,7 @@ namespace FileStreamPOC.Controllers
                 section = await reader.ReadNextSectionAsync();
             }
 
-            Console.WriteLine($"Received - Parts #: {partCount} / {size/1024}KB - Elapsed {sw.ElapsedMilliseconds}ms");
+            Console.WriteLine($"Received - Parts #: {partCount} / {size/1024}KB - Elapsed {sw.ElapsedMilliseconds}ms | {stored}");
             return Created(nameof(StreamingController), null);
         }
     }
