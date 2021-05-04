@@ -17,8 +17,9 @@ export class FileData {
 
 export class StreamService {
 
-  url: string = "/Streaming";
-  chunkSize: number = (1 * 1024 * 1024);
+  url: string = "/api/Streaming";
+  chunkSize: number = (1 * 1024 * 1024 );
+  chunksPerRequest: number = 5;
 
   streamFile(file: File, filename: string) {
     var fileData = new FileData();
@@ -29,36 +30,48 @@ export class StreamService {
     return this.createChunk(fileData, 0);
   }
   createChunk(fileData: FileData, start){
-    //We can add logic to handle multiple chunks AND multiple requests in here
     fileData.uploadRetries = 10;
-    let end = Math.min(start + this.chunkSize, fileData.blob.size );
-		const currentChunk = fileData.blob.slice(start, end);
-		console.log(`Slice: ${++fileData.chunkIndex}/${fileData.chunkCount}`);
     const chunkForm = new FormData();
-    chunkForm.append('file', currentChunk, fileData.filename);
-		console.log(`Added file '${fileData.filename}' | Size ${currentChunk.size / 1024}KB`);
+    let end = start;
+
+    for(let i = 0; i < this.chunksPerRequest; i++){
+      let chunkEnd = Math.min(end + this.chunkSize, fileData.blob.size );
+      const currentChunk = fileData.blob.slice(end, chunkEnd);
+      end = chunkEnd;
+
+      console.log(`Slice: ${++fileData.chunkIndex}/${fileData.chunkCount}`);
+      chunkForm.append('file', currentChunk, fileData.filename);
+      console.log(`Added chunk | Size ${currentChunk.size / 1024}KB`);
+
+      if(this.isFinished(fileData, chunkEnd)){
+        console.log("Finished slicing file")
+        break;
+      }
+    }
+        
+    console.log(`Added file '${fileData.filename}'`);
 		this.uploadChunk(chunkForm, start, end, fileData);
   }
 
-  uploadChunk(chunkForm, start, chunkEnd, fileData: FileData) {
+  uploadChunk(chunkForm, start, end, fileData: FileData) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", this.url, true);
-    var contentRange = "bytes " + start + "-" + chunkEnd + "/" + fileData.blob.size;
+    var contentRange = "bytes " + start + "-" + end + "/" + fileData.blob.size;
     xhr.setRequestHeader("Content-Range", contentRange);
     xhr.setRequestHeader("CorrelationId", fileData.guid);
-    console.log(`added file guid '${fileData.guid}'`);	
+    console.log(`File guid '${fileData.guid}'`);	
     console.log("Content-Range", contentRange);
 
     xhr.onload = _ => {
       // Uploaded.
       console.log("uploaded chunk");
       console.log("oReq.response", xhr.response);
-      start += this.chunkSize;
-      if (start < fileData.blob.size) {
-        this.createChunk(fileData, start);
+
+      if (this.isFinished(fileData, end)) {
+        console.log("all uploaded!");
       }
       else {
-        console.log("all uploaded!");
+        this.createChunk(fileData, end);
       }
 
     };
@@ -68,7 +81,11 @@ export class StreamService {
       //seems like there's and issue with angular proxy. 
       //This is a workaround to retry upload [{]fileData.uploadRetries] times before failing for testing purposes
       if(fileData.uploadRetries-- > 0)
-        setTimeout(_=> this.uploadChunk(chunkForm, start, chunkEnd, fileData), 1000);
+        setTimeout(_=> this.uploadChunk(chunkForm, start, end, fileData), 1000);
     };
+  }
+
+  private isFinished(fileData: FileData, start: number) {
+    return start >= fileData.blob.size;
   }
 }
