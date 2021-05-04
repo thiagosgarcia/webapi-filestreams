@@ -1,0 +1,19 @@
+<h1 id="tableLabel">Javascript Streaming</h1>
+
+<p>Select files:</p>
+
+<input accept="/*" name="file" type="file" #file>
+<button mat-raised-button (click)="upload(file.files);">Upload</button>
+<br>
+
+<!-- <div *ngFor="let fileStatus of uploadProgress | async">
+  <p>Uploading File: {{fileStatus.filename}}</p>
+  <progress color="primary" mode="determinate"
+            [value]="fileStatus.progress"></progress>
+  <p>Progress: {{fileStatus.progress}}%</p>
+  <p>GUID: {{fileStatus.guid}}</p>
+  <p>CorrID: {{fileStatus.correlationId}}</p>
+  <div *ngIf="fileStatus.progress == 100">
+    <a href="#">Uploaded File</a>
+  </div>
+</div> -->

@@ -1,0 +1,19 @@
+<!-- <h1>File Upload</h1>
+<p>Select files:</p>
+<input accept="/*" name="file" type="file" #file multiple>
+
+<button mat-raised-button (click)="upload(file.files);">Upload</button>
+<div *ngFor="let fileStatus of uploadProgress | async">
+  <p>Uploading File: {{fileStatus.filename}}</p>
+  <progress color="primary" mode="determinate"
+            [value]="fileStatus.progress"></progress>
+  <p>Progress: {{fileStatus.progress}}%</p>
+  <p>GUID: {{fileStatus.guid}}</p>
+  <p>CorrID: {{fileStatus.correlationId}}</p>
+  <div *ngIf="fileStatus.progress == 100">
+    <a href="#">Uploaded File</a>
+  </div>
+</div>
+
+<hr/> -->
+<app-fetch-data></app-fetch-data>

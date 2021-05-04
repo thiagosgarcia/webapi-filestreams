@@ -3,7 +3,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using FileStreamPOC.Util;
@@ -67,14 +69,14 @@ namespace FileStreamPOC.Controllers
 
             var sw = new Stopwatch();
             sw.Start();
-            if (!MultipartRequestHelper.IsMultipartContentType(Request.ContentType))
-            {
-                ModelState.AddModelError("File",
-                    $"The request couldn't be processed (Error 1).");
-                // Log error
+            //if (!MultipartRequestHelper.IsMultipartContentType(Request.ContentType))
+            //{
+            //    ModelState.AddModelError("File",
+            //        $"The request couldn't be processed (Error 1).");
+            //    // Log error
 
-                return BadRequest(ModelState);
-            }
+            //    return BadRequest(ModelState);
+            //}
 
             var boundary = MultipartRequestHelper.GetBoundary(
                 MediaTypeHeaderValue.Parse(Request.ContentType),
@@ -96,16 +98,16 @@ namespace FileStreamPOC.Controllers
                     // present without form data. If form data
                     // is present, this method immediately fails
                     // and returns the model error.
-                    //if (!MultipartRequestHelper
-                    //    .HasFileContentDisposition(contentDisposition))
-                    //{
-                    //    ModelState.AddModelError("File",
-                    //        $"The request couldn't be processed (Error 2).");
-                    //    // Log error
+                    if (!MultipartRequestHelper
+                        .HasFileContentDisposition(contentDisposition))
+                    {
+                        ModelState.AddModelError("File",
+                            $"The request couldn't be processed (Error 2).");
+                        // Log error
 
-                    //    return BadRequest(ModelState);
-                    //}
-                    //else
+                        return BadRequest(ModelState);
+                    }
+                    else
                     {
                         // Don't trust the file name sent by the client. To display
                         // the file name, HTML-encode the value.
@@ -113,9 +115,19 @@ namespace FileStreamPOC.Controllers
                             contentDisposition.FileName.Value);
                         //var trustedFileNameForFileStorage = Path.GetRandomFileName();
 
-                        //This example uses a CorrelationId header to indicate that multiple requests are dealing with the same file
-                        //This is NOT safe, and should be handled differently in production code - if even used
-                        var trustedFileNameForFileStorage = stored = new Guid(HttpContext.Request.Headers["CorrelationId"]).ToString();
+                        if (HttpContext.Request.Headers.ContainsKey("CorrelationId"))
+                            //This example uses a CorrelationId header to indicate that multiple requests are dealing with the same file
+                            //This is NOT safe, and should be handled differently in production code - if even used
+                             stored = new Guid(HttpContext.Request.Headers["CorrelationId"]).ToString();
+                        else if(HttpContext.Request.Headers.ContainsKey("Upload-Metadata"))
+                        {
+                            stored = HttpContext.Request.Headers["Upload-Metadata"];
+                            stored = Regex.Match(stored, "(?:filename )(.+)(?:,filetype.*)").ToString();
+                        }
+                        else
+                            stored = Guid.NewGuid().ToString();
+
+                        var trustedFileNameForFileStorage = stored;
 
                         // **WARNING!**
                         // In the following example, the file is saved without
@@ -140,13 +152,13 @@ namespace FileStreamPOC.Controllers
                         }
 
                         //Stream do Null device
-                        await using var targetStream = Stream.Null;
+                        //await using var targetStream = Stream.Null;
 
                         //Stream to temp folder
-                        //var filename = Path.Combine(_targetFilePath, trustedFileNameForFileStorage);
-                        //var fileMode = System.IO.File.Exists(filename) ? FileMode.Append : FileMode.Create;
+                        var filename = Path.Combine(_targetFilePath, trustedFileNameForFileStorage);
+                        var fileMode = System.IO.File.Exists(filename) ? FileMode.Append : FileMode.Create;
 
-                        //await using FileStream targetStream = new FileStream(filename, fileMode);
+                        await using FileStream targetStream = new FileStream(filename, fileMode);
                         await targetStream.WriteAsync(streamedFileContent);
                     }
                 }

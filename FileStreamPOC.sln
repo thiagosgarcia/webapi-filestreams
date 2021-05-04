@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31205.134
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileStreamPOC", "FileStreamPOC\FileStreamPOC.csproj", "{D6383341-12CB-440C-9541-C0C2933FCD47}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileStreamPOC", "FileStreamPOC\FileStreamPOC.csproj", "{D6383341-12CB-440C-9541-C0C2933FCD47}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileStreamClient", "FileStreamClient\FileStreamClient.csproj", "{10438A68-6A74-4EEC-9D47-0C6EC43B2247}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileStreamClient", "FileStreamClient\FileStreamClient.csproj", "{10438A68-6A74-4EEC-9D47-0C6EC43B2247}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

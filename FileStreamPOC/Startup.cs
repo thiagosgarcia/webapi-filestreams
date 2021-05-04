@@ -63,6 +63,12 @@ namespace FileStreamPOC
             app.UseRouting();
 
             app.UseAuthorization();
+            app.UseCors(x =>
+            {
+                x.AllowAnyHeader();
+                x.AllowAnyMethod();
+                x.AllowAnyOrigin();
+            });
 
             app.UseEndpoints(endpoints =>
             {
