@@ -20,6 +20,7 @@ namespace FileStreamClient
     {
         public static string SourceFile { get; set; }
         public static string Endpoint { get; set; }
+        public static int Retries { get; set; } = 1;
         public static int ChunkSizeKB { get; set; } = 1024;
         public static int DesiredMessageSizeKB { get; set; } = 20 * 1024;
         static void Main(string[] args)
@@ -198,11 +199,14 @@ namespace FileStreamClient
             }
         }
 
-        private async Task StreamChunkedFilesInMultipleMessages(CancellationToken cancellationToken, int repeat = 0)
+        private async Task<long> StreamChunkedFilesInMultipleMessages(CancellationToken cancellationToken, int repeat = 0,
+            string workingFile = null, bool enableLog = true)
         {
             var fileIdHeader = Guid.NewGuid().ToString();
             var queue = new Queue<HttpContent>();
             var sw = new Stopwatch();
+            workingFile ??= SourceFile;
+            var fileSize = 0L;
 
             async Task Send()
             {
@@ -210,25 +214,29 @@ namespace FileStreamClient
 
                 while (queue.TryDequeue(out var streamContent))
                     content.Add(streamContent, Guid.NewGuid().ToString(),
-                        Path.GetFileName(SourceFile) ?? Guid.NewGuid().ToString());
+                        Path.GetFileName(workingFile) ?? Guid.NewGuid().ToString());
 
                 if (!content.Any())
                     return;
 
-                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", fileIdHeader);
+                await SendFile(cancellationToken, content, sw, Endpoint + "Streaming", fileIdHeader, enableLog);
             }
 
-            WriteLine($"------ Uploading file in chunks with multiple messages and on demand ------");
+            if (enableLog)
+                WriteLine($"------ Uploading file in chunks with multiple messages and on demand ------");
             if (repeat <= 0)
             {
-                WriteLine("Enter the number of times to loop");
+                if (enableLog)
+                    WriteLine("Enter the number of times to loop");
                 repeat = int.Parse(ReadLine() ?? "0");
             }
             for (var i = 0; i < repeat; i++)
             {
-                WriteLine($"Splitting file...");
+                if (enableLog)
+                    WriteLine($"Splitting file...");
                 sw.Start();
-                await using var file = new FileStream(SourceFile, FileMode.Open);
+                await using var file = new FileStream(workingFile, FileMode.Open);
+                fileSize += file.Length;
 
                 var messageSize = DesiredMessageSizeKB * 1024; //defaults to 20MB
                 var chunkSize = Math.Min(ChunkSizeKB * 1024, messageSize); //Max chunk size == desired message size
@@ -245,10 +253,12 @@ namespace FileStreamClient
                 }
                 await Send(); //If there's anything left to be sent
             }
+
+            return fileSize;
         }
 
         private async Task SendFile(CancellationToken cancellationToken, HttpContent content, Stopwatch sw,
-            string endpoint, string correlationId = null)
+            string endpoint, string correlationId = null, bool enableLog = true)
         {
             var requestMessage = new HttpRequestMessage(HttpMethod.Post, endpoint)
             {
@@ -262,11 +272,15 @@ namespace FileStreamClient
             requestMessage.Headers.TryAddWithoutValidation("CorrelationId", correlationId);
             var client = new HttpClient();
 
-            WriteLine($"Prepare request took {sw.ElapsedMilliseconds}ms");
+            if (enableLog)
+                WriteLine($"Prepare request took {sw.ElapsedMilliseconds}ms");
             sw.Restart();
             var response = await client.SendAsync(requestMessage, cancellationToken);
-            WriteLine($"Sending took {sw.ElapsedMilliseconds}ms");
-            WriteLine($"{response.StatusCode} \n {await response.Content.ReadAsStringAsync(cancellationToken)}");
+            if (enableLog)
+            {
+                WriteLine($"Sending took {sw.ElapsedMilliseconds}ms");
+                WriteLine($"{response.StatusCode} \n {await response.Content.ReadAsStringAsync(cancellationToken)}");
+            }
         }
 
         private static async Task CompareChunkSize()
@@ -335,31 +349,34 @@ namespace FileStreamClient
                         Environment.Exit(0);
                         return;
                     case "-ChunkMultipleMessages":
-                        Task.Run(async () => await new Program().StreamChunkedFilesInMultipleMessages(cts.Token, 1), cts.Token).Wait(cts.Token);
-                        Environment.Exit(0);
-                        return;
-                    case "-FormFile":
-                        Task.Run(async () => await new Program().FormFile(cts.Token, 1), cts.Token).Wait(cts.Token);
-                        Environment.Exit(0);
-                        return;
-                    case "-ByteArray":
-                        Task.Run(async () => await new Program().ByteArray(cts.Token, 1), cts.Token).Wait(cts.Token);
-                        Environment.Exit(0);
-                        return;
-                    case "-UploadChunk":
-                        Task.Run(async () => await new Program().UploadChunk(cts.Token, 1), cts.Token).Wait(cts.Token);
+                        MultipleMessage(cts);
                         Environment.Exit(0);
                         return;
                     case "-StreamChunkedFiles":
-                        Task.Run(async () => await new Program().StreamChunkedFiles(cts.Token, 1), cts.Token).Wait(cts.Token);
+                        Task.Run(async () => await new Program().StreamChunkedFiles(cts.Token, Retries), cts.Token).Wait(cts.Token);
+                        Environment.Exit(0);
+                        return;
+                    case "-FormFile":
+                        Task.Run(async () => await new Program().FormFile(cts.Token, Retries), cts.Token).Wait(cts.Token);
+                        Environment.Exit(0);
+                        return;
+                    case "-ByteArray":
+                        Task.Run(async () => await new Program().ByteArray(cts.Token, Retries), cts.Token).Wait(cts.Token);
+                        Environment.Exit(0);
+                        return;
+                    case "-UploadChunk":
+                        Task.Run(async () => await new Program().UploadChunk(cts.Token, Retries), cts.Token).Wait(cts.Token);
                         Environment.Exit(0);
                         return;
                     case "-UploadFile":
-                        Task.Run(async () => await new Program().UploadFile(cts.Token, 1), cts.Token).Wait(cts.Token);
+                        Task.Run(async () => await new Program().UploadFile(cts.Token, Retries), cts.Token).Wait(cts.Token);
                         Environment.Exit(0);
                         return;
                     case "-f":
                         SourceFile = args[++i].TrimStart('"').TrimEnd('"');
+                        continue;
+                    case "-r":
+                        Retries = int.Parse(args[++i].TrimStart('"').TrimEnd('"'));
                         continue;
                     case "-cz":
                         ChunkSizeKB = int.Parse(args[++i].TrimStart('"').TrimEnd('"'));
@@ -373,6 +390,34 @@ namespace FileStreamClient
                 }
             }
 
+        }
+
+        private static void MultipleMessage(CancellationTokenSource cts)
+        {
+            if (File.Exists(SourceFile))
+                Task.Run(async () => await new Program().StreamChunkedFilesInMultipleMessages(cts.Token, Retries), cts.Token)
+                    .Wait(cts.Token);
+            else
+            {
+                var files = Directory.EnumerateFiles(SourceFile);
+                var idx = 0;
+                var size = 0L;
+                var totalSw = new Stopwatch();
+                totalSw.Start();
+                Parallel.ForEach(files, (f) =>
+                {
+                    var i = idx++;
+                    var sw = new Stopwatch();
+                    sw.Start();
+                    var fz = Task
+                        .Run(async () => await new Program().StreamChunkedFilesInMultipleMessages(cts.Token, Retries, f, false),
+                            cts.Token).Result;
+                    size += fz;
+
+                    Console.WriteLine($"{i} \t- {sw.ElapsedMilliseconds} \t- {fz / 1024d / 1024d:##.00}MB");
+                });
+                Console.WriteLine($"\n{(size / 1024d / 1024d):##.00}MB transferred in {totalSw.ElapsedMilliseconds}ms");
+            }
         }
     }
 }

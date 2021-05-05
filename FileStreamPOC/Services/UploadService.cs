@@ -31,7 +31,7 @@ namespace FileStreamPOC.Services
                 await file.CopyToAsync(fileOnDisk, cancellationToken);
             }
             _contextAccessor.HttpContext.Response.Headers.TryAdd("file-size", file.Length.ToString());
-            //File.Delete(fileName);
+            File.Delete(fileName);
         }
     }
 }

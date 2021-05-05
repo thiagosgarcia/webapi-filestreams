@@ -31,6 +31,7 @@ namespace FileStreamPOC.Controllers
         // Get the default form options so that we can use them to set the default 
         // limits for request body data.
         private static readonly FormOptions _defaultFormOptions = new FormOptions();
+        private static long bytesCount = 0L;
 
         //public StreamingController(ILogger<StreamingController> logger,
         //    AppDbContext context, IConfiguration config)
@@ -155,13 +156,14 @@ namespace FileStreamPOC.Controllers
                         }
 
                         //Stream do Null device
-                        //await using var targetStream = Stream.Null;
+                        await using var targetStream = Stream.Null;
 
                         //Stream to temp folder
-                        var filename = Path.Combine(_targetFilePath, trustedFileNameForFileStorage);
-                        var fileMode = System.IO.File.Exists(filename) ? FileMode.Append : FileMode.Create;
+                        //var filename = Path.Combine(_targetFilePath, trustedFileNameForFileStorage);
+                        //var fileMode = System.IO.File.Exists(filename) ? FileMode.Append : FileMode.Create;
 
-                        await using FileStream targetStream = new FileStream(filename, fileMode);
+                        //await using FileStream targetStream = new FileStream(filename, fileMode);
+                        bytesCount += streamedFileContent.Length;
                         await targetStream.WriteAsync(streamedFileContent);
                     }
                 }
@@ -171,7 +173,7 @@ namespace FileStreamPOC.Controllers
                 section = await reader.ReadNextSectionAsync();
             }
 
-            Console.WriteLine($"Received - Parts #: {partCount} / {size/1024}KB - Elapsed {sw.ElapsedMilliseconds}ms | {stored}");
+            Console.WriteLine($"Received - Parts #: {partCount} / {size/1024}KB - Elapsed {sw.ElapsedMilliseconds}ms | {bytesCount/1024d/1024d:##.000}MB");
             return Created(nameof(StreamingController), null);
         }
     }
